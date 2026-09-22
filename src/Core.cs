@@ -6,10 +6,10 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
-[assembly: MelonInfo(typeof(GregModMoreModules.Core), "gregMod.MoreModules", "1.0.12", "TeamGreg Modding (leoms1408 / mleem97)")]
+[assembly: MelonInfo(typeof(GregModMoreServers.Core), "gregMod.MoreServers", "1.0.12", "TeamGreg Modding (leoms1408 / mleem97)")]
 [assembly: MelonGame("Waseku", "Data Center")]
 
-namespace GregModMoreModules
+namespace GregModMoreServers
 {
     public class Core : MelonMod
     {
@@ -36,6 +36,42 @@ namespace GregModMoreModules
         internal static GameObject TemplateHolder { get; private set; }
         private static readonly Dictionary<int, int> ExtendedShopRowsByParent = new Dictionary<int, int>();
 
+        // True when gregMod.MoreModules is loaded: this fork stays inert so the
+        // shared 1000–1006 / 2000+ ID ranges are handled exactly once.
+        internal static bool s_disabledBySibling;
+
+        /// <summary>
+        /// Returns true when a sibling owner of our ID ranges is loaded, in which
+        /// case this mod must not register anything. Runs at MainGameManager.Awake,
+        /// by which time all MelonMods are registered.
+        /// </summary>
+        private static bool DetectSiblingConflict()
+        {
+            if (s_disabledBySibling)
+                return true;
+            try
+            {
+                foreach (var mod in MelonLoader.MelonMod.RegisteredMelons)
+                {
+                    if (mod?.Info == null || mod.Info.SystemType?.Assembly == typeof(Core).Assembly)
+                        continue;
+                    if (mod.Info.Name == "gregMod.MoreModules")
+                    {
+                        s_disabledBySibling = true;
+                        MelonLogger.Error("[MoreServers] gregMod.MoreModules is loaded — " +
+                            "disabling MoreServers to avoid double shop handling. " +
+                            "Install only one of the two.");
+                        return true;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Warning($"[MoreServers] Sibling check failed: {ex.Message}");
+            }
+            return false;
+        }
+
         // -----------------------------------------------------------------------
         // Scans vanilla sfpPrefabs to find the highest-speed module (QSFP+ 40G),
         // stores it as the clone source, then extends the sfpPrefabs array with
@@ -49,6 +85,12 @@ namespace GregModMoreModules
         // -----------------------------------------------------------------------
         internal static void SetupRegistry(MainGameManager mgm)
         {
+            // Mutual exclusion: gregMod.MoreModules owns the 1000–1006 / 2000+
+            // ID ranges. If it is loaded, stay inert so purchases are handled
+            // exactly once (double cart adds / double buttons otherwise).
+            if (DetectSiblingConflict())
+                return;
+
             ModuleRegistry.Clear();
 
             var sfpPrefabs = mgm.sfpPrefabs;
@@ -92,7 +134,7 @@ namespace GregModMoreModules
             // Create/recreate the inactive holder that hides templates from the world system.
             if (TemplateHolder != null)
                 Object.Destroy(TemplateHolder);
-            TemplateHolder = new GameObject("gregModMoreModules_TemplateHolder");
+            TemplateHolder = new GameObject("gregModMoreServers_TemplateHolder");
             TemplateHolder.SetActive(false);
             Object.DontDestroyOnLoad(TemplateHolder);
 
@@ -383,7 +425,7 @@ namespace GregModMoreModules
 
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
             {
-                string rowName = $"HL gregMod.MoreModules {rowIndex + 1}";
+                string rowName = $"HL gregMod.MoreServers {rowIndex + 1}";
                 var existing = shopRoot.transform.Find(rowName);
                 GameObject row = existing != null ? existing.gameObject : null;
 

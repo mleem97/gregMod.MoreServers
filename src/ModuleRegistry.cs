@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace GregModMoreModules
+namespace GregModMoreServers
 {
     internal static class ModuleRegistry
     {

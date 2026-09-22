@@ -2,8 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>disable</Nullable>
-    <AssemblyName>gregMod.MoreModules</AssemblyName>
-    <RootNamespace>GregModMoreModules</RootNamespace>
+    <AssemblyName>gregMod.MoreServers</AssemblyName>
+    <RootNamespace>GregModMoreServers</RootNamespace>
     <Platforms>x64</Platforms>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 

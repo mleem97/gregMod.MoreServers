@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace GregModMoreModules
+namespace GregModMoreServers
 {
     
     internal sealed class ModuleDefinition

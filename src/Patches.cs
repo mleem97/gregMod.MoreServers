@@ -4,7 +4,7 @@ using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
 
-namespace GregModMoreModules
+namespace GregModMoreServers
 {
     // =========================================================================
     // Patch: MainGameManager.Awake (Postfix)
@@ -55,6 +55,7 @@ namespace GregModMoreModules
                                    PlayerManager.ObjectInHand itemType, string displayName,
                                    bool isCustomColor)
         {
+            if (Core.s_disabledBySibling) return true;
             if ((itemID >= Core.MOD_ID_BASE && itemID < Core.MOD_ID_BASE + ModuleList.All.Length) ||
                 (itemID >= Core.BULK_ID_BASE && itemID < Core.BULK_ID_BASE + ModuleList.All.Length))
             {
@@ -102,7 +103,7 @@ namespace GregModMoreModules
             var existingCartItem = FindExistingCartItem(shop, itemID, itemType);
             if (existingCartItem != null)
             {
-                existingCartItem.AddSpawnedItem(uid);
+                existingCartItem.AddOne();
                 shop.UpdateCartTotal();
                 MelonLogger.Msg($"Custom cart quantity increased: itemID={itemID}, uid={uid}, " +
                                 $"quantity={existingCartItem.Quantity}");
@@ -121,7 +122,7 @@ namespace GregModMoreModules
             }
 
             var noCustomColor = new Il2CppSystem.Nullable<Color>();
-            cartItem.Initialize(shop, displayName, itemID, price, itemType, uid, noCustomColor);
+            cartItem.Initialize(shop, displayName, itemID, price, itemType, noCustomColor);
             shop.cartUIItems.Add(cartItem);
             shop.UpdateCartTotal();
 
@@ -186,6 +187,7 @@ namespace GregModMoreModules
     {
         private static bool Prefix(int itemID, PlayerManager.ObjectInHand itemType, ref GameObject __result)
         {
+            if (Core.s_disabledBySibling) return true;
             var mgm = MainGameManager.instance;
             if (mgm == null) return true;
 
@@ -298,6 +300,7 @@ namespace GregModMoreModules
     {
         private static bool Prefix(SFPBox __instance, int sfpType, ref bool __result)
         {
+            if (Core.s_disabledBySibling) return true;
             int boxType = __instance.sfpBoxType;
             if (!ModuleRegistry.TryGet(boxType, out var entry)) return true;
 

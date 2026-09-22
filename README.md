@@ -1,98 +1,87 @@
-# gregMod.MoreModules
+# gregMod.MoreServers
 
-> Adds faster, color-coded QSFP modules to **Data Center**.
+> gregMod.MoreModules** adds faster, color-coded QSFP modules to the Data Center shop. Modules use the vanilla QSFP+ form factor and persist when installed in swi
 
-[![Discord](https://img.shields.io/discord/1392073682133848075?style=for-the-badge&logo=discord&logoColor=white&label=Discord)](https://discord.gg/greg)
-[![gregFramework](https://img.shields.io/badge/gregFramework-Website-blue?style=for-the-badge)](https://gregframework.eu)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge)](./LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.0.12-orange?style=for-the-badge)]()
-[![GameVersion](https://img.shields.io/badge/Game%20Version-1.1.0-yellow?style=for-the-badge)]()
-[![Unity](https://img.shields.io/badge/Unity-6000.4.12f1-black?style=for-the-badge&logo=unity&logoColor=white)]()
+![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge) ![License](https://img.shields.io/badge/license-apache-2-0-green?style=for-the-badge) ![Platform](https://img.shields.io/badge/platform-windows_%7C_linux-lightgrey?style=for-the-badge)
 
 ## Links
 
-- **Repository:** [github.com/mleem97/gregMod.MoreModules](https://github.com/mleem97/gregMod.MoreModules)
-- **Discord / Support:** [discord.gg/greg](https://discord.gg/greg)
-- **Website:** [gregframework.eu](https://gregframework.eu)
+- **Repository:** lokaler Checkout (`/home/marvin/Dokumente/Repositories/GregFramework/ModRepositories/gregMod.MoreServers`)
 
 ## Overview
 
-**gregMod.MoreModules** adds faster, color-coded QSFP modules to the Data Center shop. Modules use the vanilla QSFP+ form factor and persist when installed in switch ports.
+**gregMod.MoreServers** — gregMod.MoreModules** adds faster, color-coded QSFP modules to the Data Center shop. Modules use the vanilla QSFP+ form factor and persist when installed in swi
 
-## Available Modules
+Siehe [docs/INDEX.md](docs/INDEX.md) für die komplette Dokumentation.
 
-| Module             | Speed      | Color   |
-|--------------------|------------|---------|
-| QSFP28 100Gbps     | 100 Gbps   | Green   |
-| QSFP56 200Gbps     | 200 Gbps   | Orange  |
-| QSFP-DD 400Gbps    | 400 Gbps   | Yellow  |
-| QSFP-DD 800Gbps    | 800 Gbps   | Red     |
-| QSFP-DWDM 1600Gbps | 1600 Gbps  | Purple  |
-| QSFP-DWDM 3200Gbps | 3200 Gbps  | Magenta |
-| QSFP-DWDM 6400Gbps | 6400 Gbps  | Cyan    |
+## Compatibility
+
+| Plattform | Status |
+|---|---|
+| Windows x64 | Supported |
+| Linux x64 | Supported |
 
 ## Features
 
-- Buyable from the **shop** like any vanilla module
-- Fully compatible with QSFP+ switch ports
-- 32 module boxes available in the shop
-- **Color-coded modules** — each tier gets its own tint so you can tell them apart at a glance
-- **Save/load persistent** — modules installed in switch ports survive game restarts
-
-## Dependencies
-
-- [MelonLoader](https://melonwiki.xyz/) v0.7.2 or newer
+- Siehe [docs/INDEX.md](docs/INDEX.md) und [QUICKSTART.md](QUICKSTART.md)
 
 ## Installation
 
-1. Install MelonLoader for Data Center if you haven't already
-2. Copy `gregMod.MoreModules.dll` into `Data Center/Mods/`
-3. Launch the game — the module appears in the shop immediately
-
-## Notes
-
-- Modules use the QSFP+ form factor — they fit any port that accepts a vanilla QSFP+ 40Gbps module
+Siehe [QUICKSTART.md](QUICKSTART.md).
 
 ## Build from Source
 
-Requirements:
-
-- .NET 6 SDK
-- local Data Center / MelonLoader installation
-
 ```bash
-dotnet build -c Release
+cd /home/marvin/Dokumente/Repositories/GregFramework/ModRepositories/gregMod.MoreServers
+# Kein Remote konfiguriert – lokal arbeiten.
 ```
 
-Release output: `bin/x64/Release/net6.0/gregMod.MoreModules.dll`
+Details: [QUICKSTART.md](QUICKSTART.md), [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Project Structure
+## Repository Layout
 
 ```
-gregMod.MoreModules/
-├── src/
-│   ├── Core.cs             # MelonLoader entry point and shop integration
-│   ├── ModuleDefinition.cs # Custom module definitions
-│   ├── ModuleRegistry.cs   # Runtime prefab registry
-│   └── Patches.cs          # Game Harmony patches
-├── references/             # Current game and MelonLoader assemblies
-├── gregMod.MoreModules.csproj
-└── README.md
+├── README.md            # Diese Datei
+├── QUICKSTART.md        # Schnellstart
+├── CHANGELOG.md         # Changelog (Keep a Changelog)
+├── CONTRIBUTING.md      # Mitmachen
+├── SECURITY.md          # Sicherheitsmeldungen
+├── CODE_OF_CONDUCT.md   # Verhaltenskodex
+├── AGENTS.md            # Hinweise für KI-Agenten
+├── LICENSE              # Apache-2.0
+├── VERSION              # Single Source of Truth für die Version
+├── docs/                # Dokumentation ([Index](docs/INDEX.md))
+├── scripts/             # Build-/Hilfsskripte
+├── tests/               # Tests
+├── references/          # Referenzen
+├── sponsors/            # Sponsoren
+└── examples/            # Beispiele
 ```
+
+## API Documentation
+
+Siehe [`docs/INDEX.md`](docs/INDEX.md).
 
 ## Credits
 
-- Original implementation: [leoms1408](https://github.com/leoms1408)
-- gregMod rebranding and current game update: [TeamGreg Modding](https://github.com/teamGregModding)
+| Rolle | Contributor |
+|---|---|
+| **Codebase** | [mleem97](https://github.com/mleem97) |
+
+## Contributing
+
+Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-See the project source and original distribution terms before redistribution.
+Apache-2.0 — siehe [`LICENSE`](LICENSE).
 
 ## 🚀 Join the gregFramework Team!
 
-### macOS Support
+Baust du gerne Mods, Tools oder Docs? Melde dich: **apply@gregframework.eu** oder via
+[Discord](https://discord.gg/greg) — Code, Assets, Docs, Testing, Infra, Community.
 
-A native macOS version of Data Center already exists. At the moment, however, there is no implementation path available for macOS support in this mod, and I do not have access to an Apple device for development or testing. I am actively looking for contributors who can help make macOS support possible. See “Join the gregFramework Team” below.
+---
 
-Contributions, testing, documentation, and feedback are welcome in the [greg Discord](https://discord.gg/greg).
+**gregFramework — powered by the community.**
+
