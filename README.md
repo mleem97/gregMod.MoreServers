@@ -6,6 +6,7 @@
 
 ## Links
 
+- **Steam Workshop:** [My Workshop (Data Center)](https://steamcommunity.com/id/frikadelle3000/myworkshopfiles/?appid=4170200)
 - **Repository:** lokaler Checkout (`/home/marvin/Dokumente/Repositories/GregFramework/ModRepositories/gregMod.MoreServers`)
 
 ## Overview
