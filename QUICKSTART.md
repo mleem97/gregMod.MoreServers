@@ -2,18 +2,18 @@
 
 > gregMod.MoreModules** adds faster, color-coded QSFP modules to the Data Center shop. Modules use the vanilla QSFP+ form factor and persist when installed in swi
 
-Repo: [.](.) · Version: `0.1.0` · Lizenz: Apache-2.0.
+Repo: [.](.) · Version: `0.1.0` · License: Apache-2.0.
 
-## 1. Klonen
+## 1. Clone
 
 ```bash
 cd /home/marvin/Dokumente/Repositories/GregFramework/ModRepositories/gregMod.MoreServers
 # Kein Remote konfiguriert – lokal arbeiten.
 ```
 
-## 2. Bauen / Starten
+## 2. Build / Run
 
-Je nach Tech-Stack **einen** Weg wählen:
+Choose **one** path depending on the tech stack:
 
 ```bash
 # .NET
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 python -m <modul>
 ```
 
-## 3. Testen
+## 3. Test
 
 ```bash
 dotnet test            # .NET
@@ -39,5 +39,5 @@ pnpm test              # Node
 pytest                 # Python
 ```
 
-Details stehen in [README.md](README.md) und [docs/INDEX.md](docs/INDEX.md).
-Bei Problemen: Issue anlegen ([Issues](./issues)) oder [CONTRIBUTING.md](CONTRIBUTING.md) lesen.
+Details are in [README.md](README.md) and [docs/INDEX.md](docs/INDEX.md).
+If you run into problems: open an issue ([Issues](./issues)) or read [CONTRIBUTING.md](CONTRIBUTING.md).
