@@ -46,10 +46,15 @@ namespace GregModMoreServers
         /// case this mod must not register anything. Runs at MainGameManager.Awake,
         /// by which time all MelonMods are registered.
         /// </summary>
+        // Logs only on state change (Awake runs per scene).
+        private static bool? _lastSiblingPresent;
+
         private static bool DetectSiblingConflict()
         {
-            if (s_disabledBySibling)
-                return true;
+            // Re-evaluate on every call: a latch that never clears would leave
+            // the catalog empty until restart when the user removes MoreModules
+            // mid-session — and saves made meanwhile would unload custom content.
+            s_disabledBySibling = false;
             try
             {
                 foreach (var mod in MelonLoader.MelonMod.RegisteredMelons)
@@ -59,9 +64,27 @@ namespace GregModMoreServers
                     if (mod.Info.Name == "gregMod.MoreModules")
                     {
                         s_disabledBySibling = true;
-                        MelonLogger.Error("[MoreServers] gregMod.MoreModules is loaded — " +
-                            "disabling MoreServers to avoid double shop handling. " +
-                            "Install only one of the two.");
+                        if (_lastSiblingPresent != true)
+                        {
+                            _lastSiblingPresent = true;
+                            MelonLogger.Error("[MoreServers] gregMod.MoreModules is loaded — " +
+                                "disabling MoreServers to avoid double shop handling. " +
+                                "Install only one of the two.");
+                        }
+                        return true;
+                    }
+                    // RealisticModules owns 110+ plus 1000+ legacy aliases that
+                    // collide with our 1000+ range — yield when it is active.
+                    if (mod.Info.Name == "gregMod.RealisticModules" && IsRealisticModulesActive())
+                    {
+                        s_disabledBySibling = true;
+                        if (_lastSiblingPresent != true)
+                        {
+                            _lastSiblingPresent = true;
+                            MelonLogger.Error("[MoreServers] gregMod.RealisticModules is active — " +
+                                "disabling MoreServers to avoid prefabID collisions. " +
+                                "Install only one of the two.");
+                        }
                         return true;
                     }
                 }
@@ -70,7 +93,21 @@ namespace GregModMoreServers
             {
                 MelonLogger.Warning($"[MoreServers] Sibling check failed: {ex.Message}");
             }
+            _lastSiblingPresent = null;
             return false;
+        }
+
+        /// <summary>True when RealisticModules is loaded AND enabled (live pref read).</summary>
+        private static bool IsRealisticModulesActive()
+        {
+            try
+            {
+                var cat = MelonPreferences.GetCategory("gregMod.RealisticModules");
+                var entry = cat?.GetEntry<bool>("Enabled");
+                if (entry != null) return entry.Value;
+            }
+            catch { }
+            return true; // missing entry → assume active (safe side: yield)
         }
 
         // -----------------------------------------------------------------------
@@ -149,16 +186,35 @@ namespace GregModMoreServers
             }
 
             // Vanilla entries at their original indices, null padding up to MOD_ID_BASE,
-            // then one slot per custom module.
-            var extended = new GameObject[MOD_ID_BASE + ModuleList.All.Length];
+            // then one slot per custom module (addressed by stable SaveId).
+            var extended = new GameObject[CustomArrayLength()];
             for (int i = 0; i < vanillaCount; i++)
                 extended[i] = sfpPrefabs[i];
 
-            int nextID = MOD_ID_BASE;
+            var usedSaveIds = new System.Collections.Generic.HashSet<int>();
 
             foreach (var def in ModuleList.All)
             {
-                int id = nextID++;
+                // Stable save ID — never derived from the array position, so
+                // reordering ModuleList cannot shift IDs stored in saves.
+                int id = def.SaveId;
+                if (id < MOD_ID_BASE)
+                {
+                    MelonLogger.Error($"'{def.DisplayName}' has no valid SaveId (>= {MOD_ID_BASE}) — skipped. " +
+                                      "SaveIds are append-only; never reuse or reorder them.");
+                    continue;
+                }
+                if (!usedSaveIds.Add(id))
+                {
+                    MelonLogger.Error($"Duplicate SaveId {id} ('{def.DisplayName}') — skipped. " +
+                                      "SaveIds must be unique; saves already store these numbers.");
+                    continue;
+                }
+                if (id >= extended.Length)
+                {
+                    MelonLogger.Error($"SaveId {id} ('{def.DisplayName}') exceeds prefab array — skipped.");
+                    continue;
+                }
                 var entry = new ModuleRegistry.Entry(
                     speedInternal: def.InternalSpeed,
                     moduleSfpType: BaseQsfpSfpType,
@@ -180,6 +236,108 @@ namespace GregModMoreServers
 
             mgm.sfpPrefabs = extended;
             MelonLogger.Msg($"sfpPrefabs extended: {vanillaCount} → {extended.Length}");
+
+            ExtendBoxPrefabs(mgm);
+        }
+
+        // -----------------------------------------------------------------------
+        // Save/load fix: the game resolves placed boxes via
+        // MainGameManager.GetSfpBoxPrefab(boxType) / sfpsBoxedPrefab[boxType].
+        // Only extending sfpPrefabs left custom boxType 1000+ unresolvable, so
+        // boxes (and their contents) vanished on relog. Mirror the module slots
+        // into sfpsBoxedPrefab so load can find our box prefabs.
+        // -----------------------------------------------------------------------
+        /// <summary>Prefab array length covering all stable SaveIds (append-safe).</summary>
+        internal static int CustomArrayLength()
+        {
+            int len = MOD_ID_BASE + ModuleList.All.Length;
+            foreach (var def in ModuleList.All)
+            {
+                if (def != null && def.SaveId + 1 > len)
+                    len = def.SaveId + 1;
+            }
+            return len;
+        }
+
+        internal static void ExtendBoxPrefabs(MainGameManager mgm)
+        {
+            try
+            {
+                var boxPrefabs = mgm.sfpsBoxedPrefab;
+                int wantLen = CustomArrayLength();
+                if (boxPrefabs != null && boxPrefabs.Length >= wantLen)
+                {
+                    bool missing = false;
+                    foreach (var (prefabID, _) in ModuleRegistry.Entries)
+                    {
+                        if (prefabID < 0 || prefabID >= boxPrefabs.Length || boxPrefabs[prefabID] == null)
+                        { missing = true; break; }
+                    }
+                    if (!missing) return;
+                }
+
+                var extendedBox = new GameObject[wantLen];
+                if (boxPrefabs != null)
+                {
+                    for (int i = 0; i < boxPrefabs.Length && i < wantLen; i++)
+                        extendedBox[i] = boxPrefabs[i];
+                }
+
+                foreach (var (prefabID, entry) in ModuleRegistry.Entries)
+                {
+                    if (prefabID < 0 || prefabID >= wantLen) continue;
+                    if (extendedBox[prefabID] != null) continue;
+                    try
+                    {
+                        var boxTemplate = BuildBoxPrefab(mgm, prefabID, entry,
+                            TemplateHolder != null ? TemplateHolder.transform : null);
+                        if (boxTemplate != null)
+                            boxTemplate.name = $"SFPBox_template_{prefabID}";
+                        extendedBox[prefabID] = boxTemplate;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MelonLogger.Warning($"Box template {prefabID} failed: {ex.Message}");
+                    }
+                }
+
+                mgm.sfpsBoxedPrefab = extendedBox;
+                MelonLogger.Msg($"sfpsBoxedPrefab extended: {boxPrefabs?.Length ?? 0} → {extendedBox.Length}");
+            }
+            catch (System.Exception ex)
+            {
+                MelonLogger.Warning($"ExtendBoxPrefabs failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Re-establishes registry + both prefab arrays when the game reset them
+        /// (or when a load happens before Awake ran). Safe to call from load-path patches.
+        /// </summary>
+        internal static void EnsureRegistry(MainGameManager mgm)
+        {
+            if (s_disabledBySibling || mgm == null) return;
+            try
+            {
+                var mods = mgm.sfpPrefabs;
+                int wantLen = CustomArrayLength();
+                bool needSetup = mods == null || mods.Length < wantLen || ModuleRegistry.Entries.Count == 0;
+                if (!needSetup)
+                {
+                    foreach (var (prefabID, _) in ModuleRegistry.Entries)
+                    {
+                        if (prefabID < 0 || prefabID >= mods.Length || mods[prefabID] == null)
+                        { needSetup = true; break; }
+                    }
+                }
+                if (needSetup)
+                {
+                    SetupRegistry(mgm);
+                    return;
+                }
+                ExtendBoxPrefabs(mgm);
+            }
+            catch { }
         }
 
         // -----------------------------------------------------------------------
@@ -231,10 +389,14 @@ namespace GregModMoreServers
         {
             if (root == null) return;
 
-            // prefabIDs start at MOD_ID_BASE and map 1:1 to ModuleList.All.
-            int defIndex = prefabID - MOD_ID_BASE;
-            if (defIndex < 0 || defIndex >= ModuleList.All.Length) return;
-            Color tint = ModuleList.All[defIndex].ModuleColor;
+            // Look up by stable SaveId — never by array position.
+            Color? tint = null;
+            foreach (var def in ModuleList.All)
+            {
+                if (def.SaveId == prefabID) { tint = def.ModuleColor; break; }
+            }
+            if (tint == null) return;
+            Color tintValue = tint.Value;
 
             // Common color property names across shaders we might encounter.
             string[] colorProps = { "_Color", "_BaseColor", "_MainColor", "_TintColor", "_Tint", "_AlbedoColor" };
@@ -254,7 +416,7 @@ namespace GregModMoreServers
                     foreach (var prop in colorProps)
                     {
                         if (mats[m].HasProperty(prop))
-                            mats[m].SetColor(prop, tint);
+                            mats[m].SetColor(prop, tintValue);
                     }
                     changed = true;
                 }
@@ -388,7 +550,7 @@ namespace GregModMoreServers
             for (int i = 0; i < ModuleList.All.Length; i++)
             {
                 var def      = ModuleList.All[i];
-                int prefabID = MOD_ID_BASE + i;
+                int prefabID = def.SaveId;
                 if (!ModuleRegistry.TryGet(prefabID, out _)) continue;
 
                 // 5x shop button (standard)
@@ -678,11 +840,24 @@ namespace GregModMoreServers
         // post-delivery via BulkUpgradeScanner — the game re-initializes sfpPositions
         // after instantiation, so upgrading at prefab time has no effect.
         // -----------------------------------------------------------------------
+        /// <summary>
+        /// Maps a positional bulk shop ID (BULK_ID_BASE + i, shop-only) to the
+        /// stable SaveId persisted in saves. -1 when out of range.
+        /// </summary>
+        internal static int RegularIdForBulk(int bulkItemID)
+        {
+            int bulkIndex = bulkItemID - BULK_ID_BASE;
+            if (bulkIndex < 0 || bulkIndex >= ModuleList.All.Length) return -1;
+            var def = ModuleList.All[bulkIndex];
+            return def != null ? def.SaveId : -1;
+        }
+
         internal static GameObject BuildBulkBoxPrefab(MainGameManager mgm, int bulkItemID,
                                                       ModuleRegistry.Entry entry,
                                                       Transform parent = null)
         {
-            int regularPrefabID = bulkItemID - BULK_ID_BASE + MOD_ID_BASE;
+            int regularPrefabID = RegularIdForBulk(bulkItemID);
+            if (regularPrefabID < 0) return null;
             var box = BuildBoxPrefab(mgm, regularPrefabID, entry, parent);
             if (box == null) return null;
 
